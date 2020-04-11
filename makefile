@@ -8,6 +8,7 @@ CMD_PYLINT		:=	$(DIR_VENV)/bin/pylint
 
 DIR_SITE		:=	$(DIR_VENV)/lib/python$(VER_PY)/site-packages
 LIB_CLICK		:=	$(DIR_SITE)/click
+LIB_PYUSB		:=	$(DIR_SITE)/usb
 
 
 SCR_PRINTED		:=	printed.py
@@ -28,11 +29,11 @@ help:
 $(DIR_VENV):
 	$(CMD_VENV) -p "python$(VER_PY)" "$(DIR_VENV)"
 
-$(LIB_CLICK): $(DIR_VENV)
+$(LIB_CLICK) $(LIB_PYUSB): $(DIR_VENV)
 	$(CMD_PIP) install -r "requirements.txt"
 
 .PHONY: requirements
-requirements: $(LIB_CLICK)
+requirements: $(LIB_CLICK) $(LIB_PYUSB)
 
 
 $(CMD_ISORT) $(CMD_PYLINT): $(DIR_VENV)
