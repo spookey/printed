@@ -12,6 +12,7 @@ LIB_PYUSB		:=	$(DIR_SITE)/usb/__init__.py
 
 
 SCR_PRINTED		:=	printed.py
+DIR_LIBRARY		:=	lib
 
 
 .PHONY: help
@@ -49,7 +50,7 @@ endef
 
 .PHONY: sort
 sort: requirements-dev
-	$(call _sort,"$(SCR_PRINTED)")
+	$(call _sort,"$(SCR_PRINTED)" "$(DIR_LIBRARY)")
 
 
 define PYLINT_MESSAGE_TEMPLATE
@@ -68,5 +69,5 @@ endef
 
 .PHONY: lint
 lint: requirements-dev
-	$(call _lint,"$(SCR_PRINTED)")
+	$(call _lint,"$(SCR_PRINTED)" "$(DIR_LIBRARY)")
 
