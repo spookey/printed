@@ -18,12 +18,12 @@ CLI_VERS = '0.0.0'
 )
 @click.option(
     '-v', '--level', 'level_name', envvar='LEVEL',
-    type=click.Choice(LOG_LEVELS.keys(), case_sensitive=True),
+    type=click.Choice(LOG_LEVELS.keys(), case_sensitive=False),
     default='warning', show_default=True,
     help='Control logging level',
 )
 def main(**cargs):
-    setup_logging(cargs['level_name'])
+    setup_logging(cargs['level_name'].lower())
 
     printer = Printer()
     if not printer.present:
