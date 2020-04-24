@@ -1,6 +1,8 @@
 import click
 
 from lib.logs import LOG_LEVELS, setup_logging
+from lib.printer import Printer
+
 CLI_PROG = 'printed'
 CLI_VERS = '0.0.0'
 
@@ -15,6 +17,12 @@ CLI_VERS = '0.0.0'
 )
 def main(**cargs):
     setup_logging(cargs['level'])
+
+    printer = Printer()
+    if not printer.present:
+        click.secho('Printer not found, check connection!', fg='red')
+        return
+    click.secho(f'Printer found: {printer}', fg='green')
 
 
 if __name__ == '__main__':
