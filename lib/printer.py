@@ -7,6 +7,8 @@ from usb.util import (
     ENDPOINT_IN, ENDPOINT_OUT, endpoint_direction, find_descriptor
 )
 
+from lib.device import Device
+
 PRODID = 0x2015
 VENDOR = 0x04f9
 
@@ -14,8 +16,9 @@ DESCRS = namedtuple('Descriptors', ('push', 'pull'))
 TIMEOUT = DESCRS(push=15000, pull=10)
 
 
-class Printer:
+class Printer(Device):
     def __init__(self):
+        super().__init__()
         self._log = getLogger(self.__class__.__name__)
 
         self.device = find(idVendor=VENDOR, idProduct=PRODID)
@@ -39,6 +42,14 @@ class Printer:
     def __repr__(self):
         cls_name = self.__class__.__name__
         return f'{cls_name}({self.product} {self.serial_number})'
+
+    @property
+    def bytes_per_row(self):
+        return 90
+
+    @property
+    def pixel_width(self):
+        return self.bytes_per_row * 8
 
     @property
     def _desc(self):
