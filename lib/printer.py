@@ -7,9 +7,11 @@ from usb.util import (
     ENDPOINT_IN, ENDPOINT_OUT, endpoint_direction, find_descriptor
 )
 
-DESCRS = namedtuple('Descriptors', ('push', 'pull'))
 PRODID = 0x2015
 VENDOR = 0x04f9
+
+DESCRS = namedtuple('Descriptors', ('push', 'pull'))
+TIMEOUT = DESCRS(push=15000, pull=10)
 
 
 class Printer:
@@ -18,7 +20,6 @@ class Printer:
 
         self.device = find(idVendor=VENDOR, idProduct=PRODID)
         self.__desc = None
-        self.__d_to = DESCRS(push=10, pull=15000)
 
         if self.device is not None:
             self.device.set_configuration()
@@ -71,7 +72,7 @@ class Printer:
             data = bytes(self._desc.pull.read(length))
             if data:
                 return data
-            sleep(self.__d_to.pull / 1000)
+            sleep(TIMEOUT.pull / 1000)
 
         self._log.info('nothing received')
         return None
@@ -80,4 +81,4 @@ class Printer:
         if not self.present:
             self._log.warning('Printer is not connected')
             return
-        self._desc.push.write(data, self.__d_to.push)
+        self._desc.push.write(data, TIMEOUT.push)
