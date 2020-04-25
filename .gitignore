@@ -1,2 +1,6 @@
+*.gif
+*.jpeg
+*.jpg
+*.png
 *.pyc
 venv/
