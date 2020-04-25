@@ -18,7 +18,7 @@ CLI_VERS = '0.0.0'
     '-l', '--label', 'label_name', envvar='LABEL',
     type=click.Choice(LABELS.keys(), case_sensitive=False),
     default='62', show_default=True,
-    help='Specify labels size',
+    help='Specify labels size (width in millimeters)',
 )
 @click.option(
     '-r', '--rotate', 'rotate', envvar='ROTATE',

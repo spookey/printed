@@ -23,15 +23,19 @@ class Device:
         return f'{cls_name}(~{len(self.data)})'
 
     def _add_invalidate(self):
+        self._log.info('adding invalidation statement')
         self.data += b'\x00' * 200
 
     def _add_initialize(self):
+        self._log.info('adding initialization statement')
         self.data += b'\x1B\x40'  # ESC @
 
     def _add_status_info(self):
+        self._log.info('adding status info request statement')
         self.data += b'\x1B\x69\x53'  # ESC i S
 
     def _add_media_info(self, l_wdt, i_hgt):
+        self._log.info('adding media info statement (%d|%d)', l_wdt, i_hgt)
         self.data += b'\x1B\x69\x7A'  # ESC i z
 
         flags = 0x80
@@ -49,24 +53,28 @@ class Device:
         self.data += pack('<L', i_hgt)
         self.data += b'\x00\x00'
 
-    def _add_margins(self, marg):
+    def _add_margin(self, marg):
+        self._log.info('adding margin statement (%d)', marg)
         self.data += b'\x1B\x69\x64'  # ESC i d
         self.data += pack('<H', marg)
 
     def _add_payload(self, stream, width):
-        frame = bytes(stream)
-        frame_len = len(frame)
-        row_len = width // 8
-        curr = 0
+        stream = bytes(stream)
+        length = len(stream)
+        self._log.info('adding payload statements (~%d)', length)
 
-        while curr + row_len <= frame_len:
-            row = frame[curr:curr + row_len]
+        curr = 0
+        row_len = width // 8
+
+        while curr + row_len <= length:
+            row = stream[curr:curr + row_len]
             self.data += b'\x67\x00'
             self.data += bytes([len(row)])
             self.data += row
             curr += row_len
 
     def _add_finalize(self):
+        self._log.info('adding finalization statement')
         self.data += b'\x1A'  # EOF
 
     def feed(self, image, label, rotate=0, threshold=70.0):
@@ -99,7 +107,7 @@ class Device:
         if _wdt != label.printable:
             _ndt, _ngt = label.printable, int((label.printable / _wdt) * _hgt)
             self._log.info(
-                'resizing from (%d|%d) to (%d|%d)',
+                'resizing image from (%d|%d) to (%d|%d)',
                 _wdt, _hgt, _ndt, _ngt
             )
             img = img.resize((_ndt, _ngt), Image.ANTIALIAS)
@@ -108,7 +116,7 @@ class Device:
         if _wdt < self.pixel_width:
             _ndt, _ngt = self.pixel_width - _wdt - label.offset, 0
             self._log.info(
-                'repositioning to (%d|%d)',
+                'repositioning image to (%d|%d)',
                 _ndt, _ngt
             )
             pst = Image.new('RGB', (self.pixel_width, _hgt), (255, 255, 255))
@@ -116,18 +124,18 @@ class Device:
             img = pst
             _wdt, _hgt = img.size
 
+        self._add_status_info()
+        self._add_media_info(label.width, _hgt)
+        self._add_margin(label.margin)
+
+        self._log.debug('generating one-bit version of image')
         img = img.convert('L')
         img = ImageOps.invert(img)
         img = img.point(lambda v: 0 if v < threshold else 255, mode='1')
-
-        self._add_status_info()
-        self._add_media_info(label.width, _hgt)
-        self._add_margins(label.margin)
-
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
         img = img.convert('1')
 
-        self._add_payload(img.tobytes(encoder_name='raw'), img.size[0])
+        self._add_payload(img.tobytes(encoder_name='raw'), _wdt)
         self._add_finalize()
 
         return self.data
