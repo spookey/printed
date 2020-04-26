@@ -133,7 +133,6 @@ class Device:
         img = ImageOps.invert(img)
         img = img.point(lambda v: 0 if v < threshold else 255, mode='1')
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
-        img = img.convert('1')
 
         self._add_payload(img.tobytes(encoder_name='raw'), _wdt)
         self._add_finalize()
