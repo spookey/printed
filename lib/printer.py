@@ -1,5 +1,4 @@
 from collections import namedtuple
-from logging import getLogger
 from time import sleep
 
 from usb.core import find
@@ -19,7 +18,6 @@ TIMEOUT = DESCRS(push=15000, pull=10)
 class Printer(Device):
     def __init__(self):
         super().__init__()
-        self._log = getLogger(self.__class__.__name__)
 
         self.device = find(idVendor=VENDOR, idProduct=PRODID)
         self.__desc = None
