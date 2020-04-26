@@ -48,13 +48,12 @@ def main(image, **cargs):
     label = LABELS.get(cargs['label_name'].lower())
     click.secho(f'Printing on label: {label}', fg='green')
 
-    data = printer.feed(
+    printer(
         image=image,
         label=label,
         rotate=cargs['rotate'],
         threshold=cargs['threshold']
     )
-    printer.push(data)
 
 
 if __name__ == '__main__':

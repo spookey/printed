@@ -91,3 +91,9 @@ class Printer(Device):
             self._log.warning('Printer is not connected')
             return
         self._desc.push.write(data, TIMEOUT.push)
+
+    def __call__(self, *, image, label, **kwargs):
+        payload = self.feed(
+            image=image, label=label, **kwargs,
+        )
+        self.push(payload)
