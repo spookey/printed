@@ -45,10 +45,10 @@ def main(image, preview, **cargs):
     setup_logging(cargs['level_name'].lower())
 
     printer = Printer()
-    if not preview and not printer.present:
+    if not preview and not printer.present(silent=True):
         click.secho('Printer not found, check connection!', fg='red')
         return
-    click.secho(f'Printer found: {printer}', fg='green')
+    click.secho(f'Using Printer: {printer}', fg='green')
 
     label = LABELS.get(cargs['label_name'].lower())
     click.secho(f'Using label: {label}', fg='green')

@@ -25,9 +25,12 @@ class Printer(Device):
         if self.device is not None:
             self.device.set_configuration()
 
-    @property
-    def present(self):
-        return self.device is not None
+    def present(self, silent=False):
+        if self.device is not None:
+            return True
+        if not silent:
+            self._log.error('not connected')
+        return False
 
     @property
     def product(self):
@@ -39,7 +42,8 @@ class Printer(Device):
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        return f'{cls_name}({self.product} {self.serial_number})'
+        spec = ' '.join(el for el in (self.product, self.serial_number) if el)
+        return f'{cls_name}({spec})'
 
     @property
     def bytes_per_row(self):
@@ -57,7 +61,7 @@ class Printer(Device):
                 endpoint_direction(dscr.bEndpointAddress) == direction
             ))
 
-        if not self.present:
+        if not self.present(silent=True):
             return None
         if not self.__desc:
             self._log.debug('determining descriptors of %s', self)
@@ -70,8 +74,7 @@ class Printer(Device):
         return self.__desc
 
     def pull(self, length=32):
-        if not self.present:
-            self._log.warning('Printer is not connected')
+        if not self.present(silent=False):
             return None
 
         tries = 3
@@ -87,8 +90,7 @@ class Printer(Device):
         return None
 
     def push(self, data):
-        if not self.present:
-            self._log.warning('Printer is not connected')
+        if not self.present(silent=False):
             return
         self._desc.push.write(data, TIMEOUT.push)
 
@@ -100,8 +102,7 @@ class Printer(Device):
             self._log.debug('preview mode - skipping print')
             return
 
-        if not self.present:
-            self._log.warning('Printer is not connected')
+        if not self.present(silent=False):
             return
 
         self.push(payload)
