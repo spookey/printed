@@ -77,15 +77,14 @@ class Device:
         self._log.info('adding finalization statement')
         self.data += b'\x1A'  # EOF
 
-    def feed(self, image, label, rotate=0, threshold=70.0):
+    def convert(
+            self, *,
+            image, label, rotate=0, threshold=70.0
+    ):
         rotate = rotate % 360
         threshold = min(
             255, max(0, int((100 - (threshold % 100)) / 100 * 255))
         )
-        self.reset()
-
-        self._add_invalidate()
-        self._add_initialize()
 
         img = Image.open(image)
 
@@ -124,17 +123,25 @@ class Device:
             img = pst
             _wdt, _hgt = img.size
 
-        self._add_status_info()
-        self._add_media_info(label.width, _hgt)
-        self._add_margin(label.margin)
-
         self._log.debug('generating one-bit version of image')
         img = img.convert('L')
         img = ImageOps.invert(img)
-        img = img.point(lambda v: 0 if v < threshold else 255, mode='1')
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
 
-        self._add_payload(img.tobytes(encoder_name='raw'), _wdt)
+        img = img.point(lambda v: 0 if v < threshold else 255, mode='1')
+
+        return img.tobytes(encoder_name='raw'), _wdt, _hgt
+
+    def feed(self, *, label, **kwargs):
+        stream, width, height = self.convert(label=label, **kwargs)
+
+        self.reset()
+        self._add_invalidate()
+        self._add_initialize()
+        self._add_status_info()
+        self._add_media_info(label.width, height)
+        self._add_margin(label.margin)
+        self._add_payload(stream, width)
         self._add_finalize()
 
         return self.data
