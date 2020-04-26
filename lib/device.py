@@ -8,74 +8,77 @@ class Device:
     def __init__(self):
         self._log = getLogger(self.__class__.__name__)
 
-        self.data = bytes()
-        self.reset()
-
-    def reset(self):
-        self.data = bytes()
-
     @property
     def pixel_width(self):
         raise NotImplementedError()
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        return f'{cls_name}(~{len(self.data)})'
+        return f'{cls_name}()'
 
-    def _add_invalidate(self):
-        self._log.info('adding invalidation statement')
-        self.data += b'\x00' * 200
+    def _make_invalidate(self):
+        self._log.info('creating invalidation statement')
+        return b'\x00' * 200
 
-    def _add_initialize(self):
-        self._log.info('adding initialization statement')
-        self.data += b'\x1B\x40'  # ESC @
+    def _make_initialize(self):
+        self._log.info('creating initialization statement')
+        return b'\x1B\x40'  # ESC @
 
-    def _add_status_info(self):
-        self._log.info('adding status info request statement')
-        self.data += b'\x1B\x69\x53'  # ESC i S
+    def _make_status_info(self):
+        self._log.info('creating status info request statement')
+        return b'\x1B\x69\x53'  # ESC i S
 
-    def _add_media_info(self, l_wdt, i_hgt):
-        self._log.info('adding media info statement (%d|%d)', l_wdt, i_hgt)
-        self.data += b'\x1B\x69\x7A'  # ESC i z
+    def _make_media_info(self, label_width, image_height):
+        self._log.info(
+            'creating media info statement (%d|%d)',
+            label_width, image_height
+        )
 
         flags = 0x80
-        mtype = bytes([0x0A & 0xFF])
-        l_wdt = bytes([l_wdt & 0xFF])
-        l_len = bytes([0x00 & 0xFF])
-        flags |= (mtype is not None) << 1
-        flags |= (l_wdt is not None) << 2
-        flags |= (l_len is not None) << 3
-        flags |= False << 6
-        self.data += bytes([flags])
-        self.data += b''.join(b'\x00' if val is None else val for val in (
-            mtype, l_wdt, l_len
-        ))
-        self.data += pack('<L', i_hgt)
-        self.data += b'\x00\x00'
+        flags |= True << 1  # media type
+        flags |= True << 2  # label width
+        flags |= True << 3  # label length
+        flags |= False << 6  # high quality
 
-    def _add_margin(self, marg):
-        self._log.info('adding margin statement (%d)', marg)
-        self.data += b'\x1B\x69\x64'  # ESC i d
-        self.data += pack('<H', marg)
+        data = b'\x1B\x69\x7A'  # ESC i z
+        data += bytes([
+            flags,
+            0x0A & 0xFF,  # media type
+            label_width & 0xFF,  # label width
+            0x00 & 0xFF,  # label length
+        ])
+        data += pack('<L', image_height)
+        data += b'\x00'  # page number
+        data += b'\x00'
 
-    def _add_payload(self, stream, width):
-        stream = bytes(stream)
-        length = len(stream)
-        self._log.info('adding payload statements (~%d)', length)
+        return data
 
+    def _make_margin(self, margin):
+        self._log.info('creating margin statement (%d)', margin)
+        data = b'\x1B\x69\x64'  # ESC i d
+        data += pack('<H', margin)
+        return data
+
+    def _make_payload(self, stream, width):
+        total = len(stream)
+        self._log.info('creating payload statements (~%d)', total)
+
+        data = b''
         curr = 0
-        row_len = width // 8
+        size = width // 8
 
-        while curr + row_len <= length:
-            row = stream[curr:curr + row_len]
-            self.data += b'\x67\x00'
-            self.data += bytes([len(row)])
-            self.data += row
-            curr += row_len
+        while curr + size <= total:
+            line = stream[curr:curr + size]
+            data += b'\x67\x00'
+            data += bytes([len(line)])
+            data += line
+            curr += size
 
-    def _add_finalize(self):
-        self._log.info('adding finalization statement')
-        self.data += b'\x1A'  # EOF
+        return data
+
+    def _make_finalize(self):
+        self._log.info('creating finalization statement')
+        return b'\x1A'  # EOF
 
     def convert(
             self, *,
@@ -132,16 +135,17 @@ class Device:
 
         return img.tobytes(encoder_name='raw'), _wdt, _hgt
 
-    def feed(self, *, label, **kwargs):
-        stream, width, height = self.convert(label=label, **kwargs)
+    def feed(self, *, image, label, **kwargs):
+        stream, width, height = self.convert(
+            image=image, label=label, **kwargs
+        )
 
-        self.reset()
-        self._add_invalidate()
-        self._add_initialize()
-        self._add_status_info()
-        self._add_media_info(label.width, height)
-        self._add_margin(label.margin)
-        self._add_payload(stream, width)
-        self._add_finalize()
-
-        return self.data
+        return b''.join((
+            self._make_invalidate(),
+            self._make_initialize(),
+            self._make_status_info(),
+            self._make_media_info(label.width, height),
+            self._make_margin(label.margin),
+            self._make_payload(stream, width),
+            self._make_finalize(),
+        ))
