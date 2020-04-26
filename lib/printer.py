@@ -92,8 +92,16 @@ class Printer(Device):
             return
         self._desc.push.write(data, TIMEOUT.push)
 
-    def __call__(self, *, image, label, **kwargs):
+    def __call__(self, *, image, label, preview=False, **kwargs):
         payload = self.feed(
-            image=image, label=label, **kwargs,
+            image=image, label=label, preview=preview, **kwargs,
         )
+        if preview:
+            self._log.debug('preview mode - skipping print')
+            return
+
+        if not self.present:
+            self._log.warning('Printer is not connected')
+            return
+
         self.push(payload)

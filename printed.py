@@ -31,26 +31,32 @@ CLI_VERS = '0.0.0'
     help='Threshold (percent) to differentiate between black and white pixels',
 )
 @click.option(
+    '-p', '--preview', 'preview', envvar='PREVIEW',
+    is_flag=True, default=False, show_default=True,
+    help='Do not print, but open generated image as preview',
+)
+@click.option(
     '-v', '--level', 'level_name', envvar='LEVEL',
     type=click.Choice(LOG_LEVELS.keys(), case_sensitive=False),
     default='warning', show_default=True,
     help='Control logging level',
 )
-def main(image, **cargs):
+def main(image, preview, **cargs):
     setup_logging(cargs['level_name'].lower())
 
     printer = Printer()
-    if not printer.present:
+    if not preview and not printer.present:
         click.secho('Printer not found, check connection!', fg='red')
         return
     click.secho(f'Printer found: {printer}', fg='green')
 
     label = LABELS.get(cargs['label_name'].lower())
-    click.secho(f'Printing on label: {label}', fg='green')
+    click.secho(f'Using label: {label}', fg='green')
 
     printer(
         image=image,
         label=label,
+        preview=preview,
         rotate=cargs['rotate'],
         threshold=cargs['threshold']
     )

@@ -81,13 +81,14 @@ class Device:
         return b'\x1A'  # EOF
 
     def convert(
-            self, *,
-            image, label, rotate=0, threshold=70.0
+            self, *, image, label,
+            rotate=0, threshold=70.0, preview=False,
     ):
         rotate = rotate % 360
-        threshold = min(
-            255, max(0, int((100 - (threshold % 100)) / 100 * 255))
-        )
+
+        threshold = min(255, max(
+            0, round((100.0 - (threshold % 100.0)) / 100.0 * 255)
+        ))
 
         img = Image.open(image)
 
@@ -129,16 +130,24 @@ class Device:
         self._log.debug('generating one-bit version of image')
         img = img.convert('L')
         img = ImageOps.invert(img)
+
+        _lo, _hi = (0, 255) if not preview else (255, 0)
+        img = img.point(lambda v: _lo if v < threshold else _hi, mode='1')
+
+        if preview:
+            self._log.info('showing preview')
+            img.show()
+            return None, 0, 0
+
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
-
-        img = img.point(lambda v: 0 if v < threshold else 255, mode='1')
-
         return img.tobytes(encoder_name='raw'), _wdt, _hgt
 
     def feed(self, *, image, label, **kwargs):
         stream, width, height = self.convert(
             image=image, label=label, **kwargs
         )
+        if stream is None:
+            return None
 
         return b''.join((
             self._make_invalidate(),
