@@ -31,6 +31,11 @@ CLI_VERS = '0.0.0'
     help='Threshold (percent) to differentiate between black and white pixels',
 )
 @click.option(
+    '-d', '--dither', 'dither', envvar='DITHER',
+    is_flag=True, default=False, show_default=True,
+    help='Apply dithering to the image - threshold has no effect',
+)
+@click.option(
     '-p', '--preview', 'preview', envvar='PREVIEW',
     is_flag=True, default=False, show_default=True,
     help='Do not print, but open generated image as preview',
@@ -57,6 +62,7 @@ def main(image, preview, **cargs):
         image=image,
         label=label,
         preview=preview,
+        dither=cargs['dither'],
         rotate=cargs['rotate'],
         threshold=cargs['threshold']
     )

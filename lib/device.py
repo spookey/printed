@@ -81,8 +81,8 @@ class Device:
         return b'\x1A'  # EOF
 
     def convert(
-            self, *, image, label,
-            rotate=0, threshold=70.0, preview=False,
+            self, *, image, label, preview=False,
+            rotate=0, threshold=70.0, dither=False,
     ):
         rotate = rotate % 360
 
@@ -126,10 +126,14 @@ class Device:
 
         self._log.debug('generating one-bit version of image')
         img = img.convert('L')
-        img = ImageOps.invert(img)
+        if not preview:
+            img = ImageOps.invert(img)
 
-        _lo, _hi = (0, 255) if not preview else (255, 0)
-        img = img.point(lambda v: _lo if v < threshold else _hi, mode='1')
+        img = (
+            img.convert('1', dither=Image.FLOYDSTEINBERG)
+            if dither else
+            img.point(lambda v: 0 if v < threshold else 255, mode='1')
+        )
 
         if preview:
             self._log.info('showing preview')
