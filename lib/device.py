@@ -94,9 +94,9 @@ class Device:
 
         if img.mode.endswith('A'):
             self._log.debug('dropping alpha channel of image')
-            pst = Image.new('RGB', img.size, 'white')
-            pst.paste(img, box=None, mask=img.split()[-1])
-            img = pst
+            tmp = Image.new('RGB', img.size, 'white')
+            tmp.paste(img, box=None, mask=img.split()[-1])
+            img = tmp
 
         if img.mode == 'P':
             self._log.debug('converting image mode')
@@ -109,26 +109,20 @@ class Device:
                 expand=True, fillcolor='white'
             )
 
-        _wdt, _hgt = img.size
-        if _wdt != label.printable:
-            _ndt, _ngt = label.printable, int((label.printable / _wdt) * _hgt)
+        if img.width != label.printable:
+            height = int((label.printable / img.width) * img.height)
             self._log.info(
                 'resizing image from (%d|%d) to (%d|%d)',
-                _wdt, _hgt, _ndt, _ngt
+                img.width, img.height, label.printable, height
             )
-            img = img.resize((_ndt, _ngt), Image.ANTIALIAS)
-            _wdt, _hgt = img.size
+            img = img.resize((label.printable, height), Image.ANTIALIAS)
 
-        if _wdt < self.pixel_width:
-            _ndt, _ngt = self.pixel_width - _wdt - label.offset, 0
-            self._log.info(
-                'repositioning image to (%d|%d)',
-                _ndt, _ngt
-            )
-            pst = Image.new('RGB', (self.pixel_width, _hgt), 'white')
-            pst.paste(img, box=(_ndt, _ngt))
-            img = pst
-            _wdt, _hgt = img.size
+        if img.width < self.pixel_width:
+            width = self.pixel_width - img.width - label.offset
+            self._log.info('offsetting image by (%d)', width)
+            tmp = Image.new('RGB', (self.pixel_width, img.height), 'white')
+            tmp.paste(img, box=(width, 0))
+            img = tmp
 
         self._log.debug('generating one-bit version of image')
         img = img.convert('L')
@@ -143,7 +137,7 @@ class Device:
             return None, 0, 0
 
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
-        return img.tobytes(encoder_name='raw'), _wdt, _hgt
+        return img.tobytes(encoder_name='raw'), img.width, img.height
 
     def feed(self, *, image, label, **kwargs):
         stream, width, height = self.convert(
