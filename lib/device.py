@@ -94,7 +94,7 @@ class Device:
 
         if img.mode.endswith('A'):
             self._log.debug('dropping alpha channel of image')
-            pst = Image.new('RGB', img.size, (255, 255, 255))
+            pst = Image.new('RGB', img.size, 'white')
             pst.paste(img, box=None, mask=img.split()[-1])
             img = pst
 
@@ -104,7 +104,10 @@ class Device:
 
         if rotate != 0:
             self._log.info('rotating image by %d°', rotate)
-            img = img.rotate(rotate, expand=True)
+            img = img.rotate(
+                angle=rotate, resample=Image.BILINEAR,
+                expand=True, fillcolor='white'
+            )
 
         _wdt, _hgt = img.size
         if _wdt != label.printable:
@@ -122,7 +125,7 @@ class Device:
                 'repositioning image to (%d|%d)',
                 _ndt, _ngt
             )
-            pst = Image.new('RGB', (self.pixel_width, _hgt), (255, 255, 255))
+            pst = Image.new('RGB', (self.pixel_width, _hgt), 'white')
             pst.paste(img, box=(_ndt, _ngt))
             img = pst
             _wdt, _hgt = img.size
