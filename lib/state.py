@@ -88,7 +88,7 @@ class Bit:
 
     def _show(self, value, payload=None):
         show = f'0x{payload:02x}' if payload else '----'
-        self._log.info('%s %s %s', f'0x{value:02x}', show, self)
+        self._log.debug('%s %s %s', f'0x{value:02x}', show, self)
         return True
 
     def _comp(self, value, payload):
