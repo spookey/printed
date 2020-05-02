@@ -1,5 +1,7 @@
 from logging import getLogger
 
+LOG = getLogger(__name__)
+
 FIXD = [
     (0x00, 'null'),
     (0x30, 'zero'),
@@ -78,7 +80,6 @@ BITS = [
 
 class Bit:
     def __init__(self, pos, ident):
-        self._log = getLogger(self.__class__.__name__)
         self.pos = pos
         self.ident = ident
 
@@ -86,31 +87,30 @@ class Bit:
         cls_name = self.__class__.__name__
         return f'{cls_name}(#{self.pos:02d} {self.ident})'
 
-    def _show(self, value, payload=None):
-        show = f'0x{payload:02x}' if payload else '----'
-        self._log.debug('%s %s %s', f'0x{value:02x}', show, self)
-        return True
+    def nested(self, ident):
+        return Bit(self.pos, f'{self.ident} - {ident}')
 
-    def _comp(self, value, payload):
-        self._show(value, payload)
-        return value == payload
+    def format(self, value, payload=None):
+        pay = f'0x{payload:02x}' if payload is not None else '----'
+        return f'0x{value:02x} {pay} {self}'
 
     def unroll(self, value, payload):
         if payload is not None:
             if isinstance(payload, (list, tuple)):
-                return any(
-                    Bit(self.pos, f'{self.ident} - {val}').unroll(value, key)
-                    for key, val in payload
-                )
-            return self._comp(value, payload)
-        return self._show(value)
+                for val, ident in ((v, i) for v, i in payload if v == value):
+                    return self.nested(ident).unroll(value, val)
+                return self.nested('unknown value').unroll(value, 0xff)
+            return payload == value, self.format(value, payload)
+        return True, self.format(value)
 
     @classmethod
     def dump(cls, data):
         if data is None or len(data) != 32:
             return False
 
-        return all(
+        result = [
             cls(pos, ident).unroll(data[pos], payload)
             for pos, (payload, ident) in enumerate(BITS)
-        )
+        ]
+        LOG.info('\n'.join(res[1] for res in result))
+        return all(res[0] for res in result)
