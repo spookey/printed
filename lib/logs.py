@@ -1,5 +1,11 @@
 from logging import (
-    DEBUG, ERROR, INFO, WARNING, Formatter, StreamHandler, getLogger
+    DEBUG,
+    ERROR,
+    INFO,
+    WARNING,
+    Formatter,
+    StreamHandler,
+    getLogger,
 )
 
 FORMATTER = Formatter('''

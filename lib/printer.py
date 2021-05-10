@@ -3,7 +3,10 @@ from time import sleep
 
 from usb.core import find
 from usb.util import (
-    ENDPOINT_IN, ENDPOINT_OUT, endpoint_direction, find_descriptor
+    ENDPOINT_IN,
+    ENDPOINT_OUT,
+    endpoint_direction,
+    find_descriptor,
 )
 
 from lib.device import Device
