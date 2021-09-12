@@ -27,7 +27,6 @@ class Label:
         return self.total - self.margin - 1
 
 
-# pylint: disable=bad-whitespace
 LABELS = {f'{label.width}': label for label in (
     Label(12, 29),
     Label(29,  6),

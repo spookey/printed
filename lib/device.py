@@ -1,5 +1,5 @@
 from logging import getLogger
-from struct import pack
+from struct import pack  # pylint: disable=no-name-in-module
 
 from PIL import Image, ImageOps
 
